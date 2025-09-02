@@ -19,8 +19,8 @@ pipeline {
                 withSonarQubeEnv('sonar-server') {
                     sh """
                         ${SCANNER_HOME}/bin/sonar-scanner \
-                        -Dsonar.projectKey=simple-app \
-                        -Dsonar.projectName=simple-app \
+                        -Dsonar.projectKey=simple-express-app-166 \
+                        -Dsonar.projectName=simple-express-app-166 \
                         -Dsonar.sources=.
                     """
                 }
