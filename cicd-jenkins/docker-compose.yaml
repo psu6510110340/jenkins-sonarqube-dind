@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   # 🔧 Jenkins Master
   jenkins-master:
@@ -10,11 +8,10 @@ services:
     ports:
       - "8080:8080"
       - "50000:50000"
+    environment:
+      JAVA_OPTS: "-Dhudson.security.csrf.GlobalCrumbIssuerStrategy=true -Djenkins.security.SystemReadPermission=true"
     volumes:
       - jenkins_home:/var/jenkins_home:rw
-    environment:
-      - JAVA_OPTS=-Dhudson.security.csrf.GlobalCrumbIssuerStrategy=true -Djenkins.security.SystemReadPermission=true
-      - DOCKER_HOST=tcp://dind:2375
     networks:
       - jenkins_network
     security_opt:
@@ -27,16 +24,26 @@ services:
       timeout: 10s
       retries: 3
 
-  # 🐳 Docker in Docker (Daemon for Jenkins & Agents)
+  # 🐳 Docker in Docker (Daemon for Jenkins Agents)
   dind:
     image: docker:28.3.3-dind
     privileged: true
-    container_name: dind
-    command: ["--host=tcp://0.0.0.0:2375", "--host=unix:///var/run/docker.sock"]
-    networks:
-      - jenkins_network
+    container_name: jenkins-docker
+    environment:
+      DOCKER_TLS_CERTDIR: /certs
     volumes:
-      - dind-data:/var/lib/docker
+      - jenkins-docker-data:/var/lib/docker
+      - jenkins-docker-certs:/certs/client
+    networks:
+      jenkins_network:
+        aliases:
+          - docker
+    command: ["--storage-driver=overlay2", "--tlsverify", "-H", "tcp://0.0.0.0:2376"]
+    healthcheck:
+      test: ["CMD-SHELL", "docker --tlsverify --cert /certs/client/cert.pem --key /certs/client/key.pem --cacert /certs/client/ca.pem info"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
 
   # 🔧 Jenkins SSH Agent
   jenkins-agent:
@@ -47,11 +54,14 @@ services:
     restart: unless-stopped
     expose:
       - "22"
+    environment:
+      JENKINS_AGENT_SSH_PUBKEY: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDbRKu6V9gMwqg6NmHg7z375+pqfHUM03eyCAiIcOXesuVHuS3yurVDwyaEKpzMuJjSjSdCjCLspUPuhYWLBI+UIZS/8jQ00rX93e/vmW/6W2Q4bhjSHPeBScXaHp/otwSuYEFdO+6qHrTF5T3Ev7umHAzQqJGYR/q/Nndik4v3uNUcBEBRVifMYPrESg9TAxOY0NFC3g4vr6EcV2FE5V553DOhzqByIzzl9qPkUrRRGOpAcX7FpUEXERazwxxhVca3SlrAFh7eokeU814gPkItTNEVHFAdF0Nc1Mdhnl5AlioVofTtr7JHYxeqxpLK1VIkBGLDwnMTB6pPiq/YzHbP/CxMcCvoDkCvq4w3rDXIoNcyHYGdtvRvoM6yjzI2A6F4Hqmpfcme8+ZTDbQSrOslQOpkpN2UCFuFoYQP6yVBLM3wByATfzUafueVsA1eUcJH/zKwzREu7SS3VaxMapxoyOZ04vsZrV8ZqbAmxkEMvL1syd+bLVgjUIKgoUOCMn35FmHLaYtnJq/j42WOUeYzbizQNp6A0KgbF+IgihKise2aB0UhhuR2eNOANupZ4RZs66InFZbpjoLvM3f7EplZzUe9f4TxjlmzCUWH+TrOApDEXOzYExel9D4BelK3BM3I4gLnG5/oemLbseqqMKQS1Omj8eWSkBGzGUHKXS1GNw== txntt@SuperCohhz"
+      DOCKER_HOST: "tcp://docker:2376"
+      DOCKER_TLS_VERIFY: "1"
+      DOCKER_CERT_PATH: "/certs/client"
     volumes:
       - jenkins_agent:/home/jenkins/agent:rw
-    environment:
-      - JENKINS_AGENT_SSH_PUBKEY=ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILwkY5JWC1ktt2+j7Fy18fUi6Frva8PxZvhg07kRurRn txntt@SuperCohhz
-      - DOCKER_HOST=tcp://dind:2375
+      - jenkins-docker-certs:/certs/client:ro
     networks:
       - jenkins_network
     security_opt:
@@ -80,6 +90,11 @@ services:
       - sonarqube_temp:/opt/sonarqube/temp
     networks:
       - jenkins_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9000 || exit 1"]
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
 
   # 🐘 Postgres for SonarQube
   sonar_db:
@@ -90,10 +105,14 @@ services:
       POSTGRES_PASSWORD: sonar
       POSTGRES_DB: sonar
     volumes:
-      - sonar_db:/var/lib/postgresql
-      - sonar_db_data:/var/lib/postgresql/data
+      - sonar_db:/var/lib/postgresql/data
     networks:
       - jenkins_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sonar -d sonar"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
 # 🔗 Shared Network
 networks:
@@ -104,11 +123,11 @@ networks:
 volumes:
   jenkins_home:
   jenkins_agent:
-  dind-data:
+  jenkins-docker-data:
+  jenkins-docker-certs:
   sonarqube_conf:
   sonarqube_data:
   sonarqube_extensions:
   sonarqube_logs:
   sonarqube_temp:
   sonar_db:
-  sonar_db_data:
