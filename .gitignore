@@ -194,9 +194,12 @@ $RECYCLE.BIN/
 /java-hello-world-with-maven/target
 dependency-reduced-pom.xml
 
+/cicd-jenkins/jenkins_agent_keys
+
 # Others
 .classpath
 .project
 .settings/
 .vscode
 .DS_Store
+
