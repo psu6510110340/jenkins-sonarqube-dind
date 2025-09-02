@@ -3,7 +3,7 @@ version: "3.8"
 services:
   # 🔧 Jenkins Master
   jenkins-master:
-    image: myjenkins-blueocean:2.516.2-1
+    image: jenkins/jenkins:custom-jdk21
     container_name: jenkins
     restart: unless-stopped
     user: 1000:1000
@@ -40,7 +40,7 @@ services:
 
   # 🔧 Jenkins SSH Agent
   jenkins-agent:
-    image: jenkins-agent:custom-jdk21
+    image: jenkins/ssh-agent:custom-deb-jdk21
     privileged: true
     user: root
     container_name: jenkins-agent
