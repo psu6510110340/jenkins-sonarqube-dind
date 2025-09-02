@@ -21,7 +21,7 @@ pipeline {
                         ${SCANNER_HOME}/bin/sonar-scanner \
                         -Dsonar.projectKey=simple-express-app-166 \
                         -Dsonar.projectName=simple-express-app-166 \
-                        -Dsonar.sources=../simple-express-app/
+                        -Dsonar.sources=./simple-express-app/
                     """
                 }
             }
