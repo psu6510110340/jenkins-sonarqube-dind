@@ -1,5 +1,5 @@
 pipeline {
-	agent { label 'agent' }
+	agent { label 'docker-agent' }
 	tools {
 		nodejs 'node24'
 	}
