@@ -22,15 +22,15 @@ pipeline{
         stage('SonarQube') {
             steps {
                 sh '''
-                docker run -i --rm --name my-maven-project \
-                  --network host \
-                  -v "$(pwd)":/usr/src/mymaven \
-                  -w /usr/src/mymaven maven:3.9.9 \
-                  mvn clean verify sonar:sonar \
-                  -Dsonar.projectKey=maven-project-166 \
-                  -Dsonar.projectName="maven-project-166" \
-                  -Dsonar.host.url=http://sonarqube:9000 \
-                  -Dsonar.token=sqa_5e6c47a5567f1d4f7fb6ed170dd6512a46bd1f88
+                    docker run -i --rm --name my-maven-project \
+                    --network host \
+                    -v "$(pwd)":/usr/src/mymaven \
+                    -w /usr/src/mymaven maven:3.9.9 \
+                    mvn clean verify sonar:sonar \
+                    -Dsonar.projectKey=maven-project-166 \
+                    -Dsonar.projectName="maven-project-166" \
+                    -Dsonar.host.url=http://sonarqube:9000 \
+                    -Dsonar.token=sqa_5e6c47a5567f1d4f7fb6ed170dd6512a46bd1f88
                 '''
             }
         }
