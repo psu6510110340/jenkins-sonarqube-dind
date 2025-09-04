@@ -12,6 +12,7 @@ services:
       JAVA_OPTS: "-Dhudson.security.csrf.GlobalCrumbIssuerStrategy=true -Djenkins.security.SystemReadPermission=true"
     volumes:
       - jenkins_home:/var/jenkins_home:rw
+      - //var/run/docker.sock:/var/run/docker.sock
     networks:
       - jenkins_network
     security_opt:
