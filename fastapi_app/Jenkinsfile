@@ -1,0 +1,42 @@
+pipeline {
+    agent { label 'docker-agent' }
+
+    environment {
+        APP_DIR = './fastapi_app'
+        SONARQUBE = credentials('sonar-token30')
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/Thanutham-T/jenkins-sonarqube-dind.git'
+            }
+        }
+        
+        stage('Version') {
+            steps {
+                echo 'Building...'
+                sh 'python3 --version'
+            }
+        }
+        
+        stage('Install Dependencies') {
+            steps {
+                echo 'Environment setup...'
+                sh 'python3 -m venv .venv'
+                sh '''
+                    . .venv/bin/activate
+                    pip install --upgrade pip
+                    pip install -r ${APP_DIR}/requirements.txt
+                    pip install sonar-scanner coverage pytest
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            echo "Pipeline finished"
+        }
+    }
+}
