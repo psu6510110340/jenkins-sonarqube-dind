@@ -1,5 +1,5 @@
 pipeline {
-    agent { label 'docker-agent' }
+    agent none
 
     environment {
         APP_DIR = './fastapi_app'
@@ -7,13 +7,15 @@ pipeline {
     }
 
     stages {
-        stage('Checkout') {
+        stage('Checkout for CI') {
+            agent { label 'docker-agent' }
             steps {
                 git branch: 'main', url: 'https://github.com/Thanutham-T/jenkins-sonarqube-dind.git'
             }
         }
         
         stage('Version') {
+            agent { label 'docker-agent' }
             steps {
                 echo 'Building...'
                 sh 'python3 --version'
@@ -21,6 +23,7 @@ pipeline {
         }
         
         stage('Install Dependencies') {
+            agent { label 'docker-agent' }
             steps {
                 echo 'Environment setup...'
                 sh 'python3 -m venv .venv'
@@ -28,7 +31,70 @@ pipeline {
                     . .venv/bin/activate
                     pip install --upgrade pip
                     pip install -r ${APP_DIR}/requirements.txt
-                    pip install sonar-scanner coverage pytest
+                    pip install pysonar pytest coverage pytest-cov
+                '''
+            }
+        }
+
+        stage('Run Tests & Coverage') {
+            agent { label 'docker-agent' }
+            steps {
+                sh '''
+                    . .venv/bin/activate
+                    PYTHONPATH=./${APP_DIR} pytest ${APP_DIR}/tests
+                '''
+            }
+        }
+        
+        stage('Run SonarQube') {
+            agent { label 'docker-agent' }
+            environment {
+                SCANNER_HOME = tool 'sonar-scanner'
+                // JDK_HOME = tool 'jdk9'
+            }
+
+            steps {
+                withSonarQubeEnv('sonar-server') {
+                    sh """
+                        ${SCANNER_HOME}/bin/sonar-scanner \
+                        -Dsonar.projectKey=fastapi-project-166 \
+                        -Dsonar.projectName=fastapi-project-166 \
+                        -Dsonar.sources=./${APP_DIR}/
+                    """
+                }
+            }
+        }
+        
+
+        stage('Quality Gate') {
+            agent { label 'docker-agent' }
+            steps {
+                timeout(time: 2, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+        
+        stage('Checkout for CD') {
+            agent { label 'master' }
+            steps {
+                git branch: 'main', url: 'https://github.com/Thanutham-T/jenkins-sonarqube-dind.git'
+            }
+        }
+
+        stage('Build Docker Image') {
+            agent { label 'master' }
+            steps {
+                sh 'docker build -f ${APP_DIR}/Dockerfile -t fastapi-app:latest ${APP_DIR}'
+            }
+        }
+
+        stage('Deploy Container') {
+            agent { label 'master' }
+            steps {
+                sh '''
+                    docker rm -f fastapi-app || true
+                    docker run -d -p 8000:8000 --name fastapi-app fastapi-app:latest
                 '''
             }
         }
