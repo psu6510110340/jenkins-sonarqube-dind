@@ -1,108 +1,128 @@
 pipeline {
-    agent none
+  agent none
 
-    environment {
-        APP_DIR = './fastapi_app'
-        SONARQUBE = credentials('sonarqube_token')
+  environment {
+    APP_DIR = 'fastapi_app' // ตัด "./" ออกให้ path สะอาดขึ้น
+    // SONARQUBE = credentials('sonarqube_token') // ไม่จำเป็นถ้าใช้ withSonarQubeEnv
+  }
+
+  stages {
+    stage('Checkout for CI') {
+      agent any
+      steps {
+        git branch: 'main', url: 'https://github.com/psu6510110340/jenkins-sonarqube-dind.git'
+      }
     }
 
-    stages {
-        stage('Checkout for CI') {
-            agent { label 'docker-agent' }
-            steps {
-                git branch: 'main', url: 'https://github.com/psu6510110340/jenkins-sonarqube-dind.git'
-            }
+    stage('Version') {
+      agent {
+        docker {
+          image 'python:3.11-slim'
+          args '-u 0'
         }
-        
-        stage('Version') {
-            agent { label 'docker-agent' }
-            steps {
-                echo 'Building...'
-                sh 'python3 --version'
-            }
-        }
-        
-        stage('Install Dependencies') {
-            agent { label 'docker-agent' }
-            steps {
-                echo 'Environment setup...'
-                sh 'python3 -m venv .venv'
-                sh '''
-                    . .venv/bin/activate
-                    pip install --upgrade pip
-                    pip install -r ${APP_DIR}/requirements.txt
-                    pip install pysonar pytest coverage pytest-cov
-                '''
-            }
-        }
-
-        stage('Run Tests & Coverage') {
-            agent { label 'docker-agent' }
-            steps {
-                sh '''
-                    . .venv/bin/activate
-                    PYTHONPATH=./${APP_DIR} pytest ${APP_DIR}/tests
-                '''
-            }
-        }
-        
-        stage('Run SonarQube') {
-            agent { label 'docker-agent' }
-            environment {
-                SCANNER_HOME = tool 'sonar-scanner'
-                // JDK_HOME = tool 'jdk9'
-            }
-
-            steps {
-                withSonarQubeEnv('sonar-server') {
-                    sh """
-                        ${SCANNER_HOME}/bin/sonar-scanner \
-                        -Dsonar.projectKey=fastapi-project-166 \
-                        -Dsonar.projectName=fastapi-project-166 \
-                        -Dsonar.sources=./${APP_DIR}/
-                    """
-                }
-            }
-        }
-        
-
-        stage('Quality Gate') {
-            agent { label 'docker-agent' }
-            steps {
-                timeout(time: 2, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
-                }
-            }
-        }
-        
-        stage('Checkout for CD') {
-            agent { label 'master' }
-            steps {
-                git branch: 'main', url: 'https://github.com/psu6510110340/jenkins-sonarqube-dind.git'
-            }
-        }
-
-        stage('Build Docker Image') {
-            agent { label 'master' }
-            steps {
-                sh 'docker build -f ${APP_DIR}/Dockerfile -t fastapi-app:latest ${APP_DIR}'
-            }
-        }
-
-        stage('Deploy Container') {
-            agent { label 'master' }
-            steps {
-                sh '''
-                    docker rm -f fastapi-app || true
-                    docker run -d -p 8000:8000 --name fastapi-app fastapi-app:latest
-                '''
-            }
-        }
+      }
+      steps {
+        echo 'Building...'
+        sh 'python --version && pip --version'
+      }
     }
 
-    post {
+    stage('Install Dependencies') {
+      agent {
+        docker {
+          image 'python:3.11-slim'
+          args '-u 0'
+        }
+      }
+      steps {
+        sh '''
+          python -m venv .venv
+          . .venv/bin/activate
+          pip install --upgrade pip
+          pip install -r ${APP_DIR}/requirements.txt
+          pip install pytest coverage pytest-cov
+        '''
+      }
+    }
+
+    stage('Run Tests & Coverage') {
+      agent {
+        docker {
+          image 'python:3.11-slim'
+          args '-u 0'
+        }
+      }
+      steps {
+        sh '''
+          . .venv/bin/activate
+          PYTHONPATH=${APP_DIR} pytest ${APP_DIR}/tests -q --disable-warnings
+        '''
+      }
+      post {
         always {
-            echo "Pipeline finished"
+          junit allowEmptyResults: true, testResults: '**/junit*.xml'
         }
+      }
     }
+
+    stage('Run SonarQube') {
+      agent {
+        docker {
+          image 'sonarsource/sonar-scanner-cli:latest'
+        }
+      }
+      steps {
+        withSonarQubeEnv('sonar-server') {
+          sh """
+            sonar-scanner \
+              -Dsonar.projectKey=fastapi-project-166 \
+              -Dsonar.projectName=fastapi-project-166 \
+              -Dsonar.sources=${APP_DIR} \
+              -Dsonar.exclusions=**/.venv/**,**/__pycache__/** \
+              -Dsonar.python.version=3.11
+          """
+        }
+      }
+    }
+
+    stage('Quality Gate') {
+      agent any
+      steps {
+        timeout(time: 5, unit: 'MINUTES') {
+          waitForQualityGate abortPipeline: true
+        }
+      }
+    }
+
+    stage('Checkout for CD') {
+      // ถ้าต้องการ deploy จาก repo เดิม ให้ใช้ URL เดียวกับตอน CI
+      agent { label 'master' }  // ต้องเป็น node ที่ใช้ Docker CLI ได้
+      steps {
+        git branch: 'main', url: 'https://github.com/psu6510110340/jenkins-sonarqube-dind.git'
+      }
+    }
+
+    stage('Build Docker Image') {
+      agent { label 'master' }
+      steps {
+        sh 'docker build -f ${APP_DIR}/Dockerfile -t fastapi-app:latest ${APP_DIR}'
+      }
+    }
+
+    stage('Deploy Container') {
+      agent { label 'master' }
+      steps {
+        sh '''
+          docker rm -f fastapi-app || true
+          docker run -d -p 8000:8000 --name fastapi-app fastapi-app:latest
+        '''
+      }
+    }
+  }
+
+  post {
+    always {
+      echo "Pipeline finished"
+    }
+  }
 }
