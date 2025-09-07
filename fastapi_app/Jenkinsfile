@@ -3,14 +3,14 @@ pipeline {
 
     environment {
         APP_DIR = './fastapi_app'
-        SONARQUBE = credentials('sonar-token30')
+        SONARQUBE = credentials('sonarqube_token')
     }
 
     stages {
         stage('Checkout for CI') {
             agent { label 'docker-agent' }
             steps {
-                git branch: 'main', url: 'https://github.com/Thanutham-T/jenkins-sonarqube-dind.git'
+                git branch: 'main', url: 'https://github.com/psu6510110340/jenkins-sonarqube-dind.git'
             }
         }
         
