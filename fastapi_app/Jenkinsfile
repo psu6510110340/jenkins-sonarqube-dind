@@ -95,8 +95,7 @@ pipeline {
     }
 
     stage('Checkout for CD') {
-      // ถ้าต้องการ deploy จาก repo เดิม ให้ใช้ URL เดียวกับตอน CI
-      agent { label 'master' }  // ต้องเป็น node ที่ใช้ Docker CLI ได้
+      agent any
       steps {
         git branch: 'main', url: 'https://github.com/psu6510110340/jenkins-sonarqube-dind.git'
       }
