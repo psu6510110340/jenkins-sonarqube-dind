@@ -78,7 +78,7 @@ pipeline {
         stage('Checkout for CD') {
             agent { label 'master' }
             steps {
-                git branch: 'main', url: 'https://github.com/Thanutham-T/jenkins-sonarqube-dind.git'
+                git branch: 'main', url: 'https://github.com/psu6510110340/jenkins-sonarqube-dind.git'
             }
         }
 
