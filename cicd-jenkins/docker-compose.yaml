@@ -6,7 +6,7 @@ services:
     restart: unless-stopped
     user: 1000:1000
     ports:
-      - "8080:8080"
+      - "8081:8080"
       - "50000:50000"
     environment:
       JAVA_OPTS: "-Dhudson.security.csrf.GlobalCrumbIssuerStrategy=true -Djenkins.security.SystemReadPermission=true"
@@ -56,7 +56,7 @@ services:
     expose:
       - "22"
     environment:
-      JENKINS_AGENT_SSH_PUBKEY: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDbRKu6V9gMwqg6NmHg7z375+pqfHUM03eyCAiIcOXesuVHuS3yurVDwyaEKpzMuJjSjSdCjCLspUPuhYWLBI+UIZS/8jQ00rX93e/vmW/6W2Q4bhjSHPeBScXaHp/otwSuYEFdO+6qHrTF5T3Ev7umHAzQqJGYR/q/Nndik4v3uNUcBEBRVifMYPrESg9TAxOY0NFC3g4vr6EcV2FE5V553DOhzqByIzzl9qPkUrRRGOpAcX7FpUEXERazwxxhVca3SlrAFh7eokeU814gPkItTNEVHFAdF0Nc1Mdhnl5AlioVofTtr7JHYxeqxpLK1VIkBGLDwnMTB6pPiq/YzHbP/CxMcCvoDkCvq4w3rDXIoNcyHYGdtvRvoM6yjzI2A6F4Hqmpfcme8+ZTDbQSrOslQOpkpN2UCFuFoYQP6yVBLM3wByATfzUafueVsA1eUcJH/zKwzREu7SS3VaxMapxoyOZ04vsZrV8ZqbAmxkEMvL1syd+bLVgjUIKgoUOCMn35FmHLaYtnJq/j42WOUeYzbizQNp6A0KgbF+IgihKise2aB0UhhuR2eNOANupZ4RZs66InFZbpjoLvM3f7EplZzUe9f4TxjlmzCUWH+TrOApDEXOzYExel9D4BelK3BM3I4gLnG5/oemLbseqqMKQS1Omj8eWSkBGzGUHKXS1GNw== txntt@SuperCohhz"
+      JENKINS_AGENT_SSH_PUBKEY: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDIssApkllSvVAK9XQnaN8997Dk8CsdUk9SzIfRP/M/o5rUTjCsSMG+tbQlNDLTz3JIBYWEsMWy7vQEeRsEPtJF6uX31m0m/oAQu0jUTNpycCn1XRo5gkWJl7BCizRW5DVd7PVu2ayKd8gt5YDfG4AHvEGbOtbrPQz0+PwNaxuw7yNHekhCyD3ugp4tcuC2cw2p0q6+b/ru76aG7uFMjysiOTrnnW9O0hP4aLu0bgomNI3lPzvIizxT6Tlvsrzp5U4H8pvXwTMDxm6q4Qc5DQ7qbBiyLitb9ZUZGEIlz4GzGFAzT87aboEH44pvcGF7rubLL7gXDJdX6ldUEi9FqEWWa5wWe8Ej4yxlNqtq+jqQMbJ7h20Q+BaQSbWn4FrjQeNMlP9eg/3akz8tBxyfrUuFUFYfrZFjJAFr/BL23VtUqURDaDaKSla69i41GaXXdOEpXEOHtxsWuGxktHtizYJIVSueqX5zTmS2ZXX+jmbvlgM5iRM6PFALCR2qIgHpsgFfo9ZO85p4hrZQVSBa4vl3pUDbLYw16K7g9iByIOC2tE9nhmv2C2v2f4XqZTVQ5EtHMVFvfW8QZmXKTCxah4RD7kNuWDH7xjQ9ulKer2t/22nkenhKtWVcxNG9UoVBMaiBbNbjb0XLJpJ2spcXmbZVHXJsdIGXLH0Z8TGZ91L3+Q== msi thin@MSI"
       DOCKER_HOST: "tcp://docker:2376"
       DOCKER_TLS_VERIFY: "1"
       DOCKER_CERT_PATH: "/certs/client"
